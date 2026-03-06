@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Runtime output (audio clips, transcripts)
+output/
+
+# Model / binary artifacts
+*.pt
+*.bin
+*.ckpt
+*.safetensors
+
+# Temporary uploaded files
+tmp_*
+
+# Environment / secrets
+.env

@@ -1,0 +1,33 @@
+[project]
+name = "english-learning"
+version = "0.1.0"
+description = "Local English listening practice with ASR and connected speech analysis"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.35.0",
+    "pydub>=0.25.1",
+    "transformers>=4.40.0",
+    "torch>=2.2.0",
+    "torchaudio>=2.5.1",
+    "accelerate>=0.33.0",
+    "bitsandbytes>=0.42.0",
+    "srt>=3.5.3",
+    "webvtt-py>=0.5.1",
+    "qwen-asr>=0.0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+# Route torch and torchaudio to the CUDA wheel index; all other packages use PyPI.
+# Remove this [tool.uv.sources] block entirely to install CPU-only wheels from PyPI instead.
+torch = [{ index = "pytorch-cu121" }]
+torchaudio = [{ index = "pytorch-cu121" }]
