@@ -497,6 +497,29 @@ def _render_looping_audio(wav_path: str, key: str = "audio_loop") -> None:
     components.html(audio_html, height=80)
 
 
+def _render_embedded_audio(wav_path: str, key: str = "audio_player") -> None:
+    """Render an HTML audio player using an embedded base64 src.
+
+    This avoids relying on Streamlit's media-file storage, which can
+    race and log "Missing file" errors when the file id expires.
+    """
+    try:
+        with open(wav_path, "rb") as fh:
+            data = fh.read()
+    except Exception:
+        st.warning("Clip not found.")
+        return
+
+    b64 = base64.b64encode(data).decode("ascii")
+    audio_html = f"""
+        <audio controls style='width:100%'>
+          <source src="data:audio/wav;base64,{b64}" type="audio/wav" />
+          Your browser does not support the audio element.
+        </audio>
+        """
+    components.html(audio_html, height=80)
+
+
 def _practice_index_path() -> str:
     return os.path.join("output", "practice_index.json")
 
@@ -506,7 +529,7 @@ def _startup_log(msg: str) -> None:
     try:
         os.makedirs("output", exist_ok=True)
         path = os.path.join("output", "startup_debug.log")
-        ts = datetime.datetime.utcnow().isoformat()
+        ts = datetime.datetime.now().isoformat()
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(f"{ts} - {msg}\n")
     except Exception:
@@ -753,8 +776,7 @@ def _render_segment(seg: Segment) -> None:
             if loop_on:
                 _render_looping_audio(seg.clip_path, key=f"loop_html_{idx}")
             else:
-                with open(seg.clip_path, "rb") as fh:
-                    st.audio(fh.read(), format="audio/wav")
+                _render_embedded_audio(seg.clip_path, key=f"audio_{idx}")
         else:
             st.warning("Clip not found.")
 

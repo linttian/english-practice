@@ -5,12 +5,77 @@ System requirement: ffmpeg must be available in PATH.
 """
 
 import json
+import re
 import tempfile
 from pathlib import Path
 
 from .models import Segment
 
 _CACHE_FILE = "segments.json"
+
+
+def _is_sentence_final(text: str, next_text: str | None = None) -> bool:
+    """Return True if the text likely ends a sentence.
+
+    Treats '?' and '!' as sentence-final. For '.' we apply heuristics to
+    avoid treating common abbreviations and initials (e.g. "Mrs.", "U.S.")
+    as sentence endings.
+    """
+    if not text:
+        return False
+    t = text.strip()
+    if not t:
+        return False
+    last_char = t[-1]
+    if last_char in "!?":
+        return True
+    if last_char != ".":
+        return False
+
+    # Remove closing quotes/parens/brackets
+    cleaned = re.sub(r"[\"'\)\]]+$", "", t)
+    # Get the last token
+    parts = re.split(r"\s+", cleaned)
+    last_word = parts[-1] if parts else cleaned
+
+    # If it's a sequence of single-letter initials like "U.S." or "A.B.C.",
+    # we need context: treat as sentence-final if there's no following text
+    # or if the following text looks like the start of a new sentence.
+    if re.match(r"^(?:[A-Za-z]\.)+$", last_word):
+        if not next_text:
+            return True
+        # if next text starts with lowercase, it's likely a continuation
+        first = next_text.strip()[:1]
+        if first and first.islower():
+            return False
+        return True
+
+    # Honorifics/titles that almost always continue with a name (don't end sentences)
+    titles = r"^(?:Mr|Mrs|Ms|Miss|Dr|Prof|Sir|Madam|Mx)\.?$"
+    if re.match(titles, last_word, re.IGNORECASE):
+        return False
+
+    # Common abbreviations (months, e.g., etc) that usually don't end sentences
+    abbrev = r"^(?:Sr|Jr|St|vs|etc|e\.g|i\.e|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?$"
+    if re.match(abbrev, last_word, re.IGNORECASE):
+        # If there's no following text, allow sentence end
+        if not next_text:
+            return True
+        first = next_text.strip()[:1]
+        if first and first.islower():
+            return False
+        return True
+
+    # Single-letter initials like "A." are likely abbreviations
+    if re.match(r"^[A-Za-z]\.$", last_word):
+        if not next_text:
+            return True
+        first = next_text.strip()[:1]
+        if first and first.islower():
+            return False
+        return True
+
+    return True
 
 
 def _segments_to_json(segments: list[Segment]) -> list[dict]:
@@ -144,12 +209,15 @@ def slice_audio(
     merged_segments = []
     buffer_segment = None
 
-    for seg in segments:
+    for i, seg in enumerate(segments):
         if buffer_segment is None:
             buffer_segment = seg
         else:
             # Check if the current segment should be merged
-            if merge_on_punctuation and not buffer_segment.text.strip().endswith("."):
+            next_text = seg.text if seg and hasattr(seg, "text") else None
+            if merge_on_punctuation and not _is_sentence_final(
+                buffer_segment.text, next_text
+            ):
                 buffer_segment.end = seg.end
                 buffer_segment.text += " " + seg.text
             elif len(buffer_segment.text.split()) < min_sentence_length:

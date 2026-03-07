@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Bootstrap uv (installer) and install deps
+        run: |
+          # Install uv via the official independent installer (no pip)
+          curl -LsSf https://astral.sh/uv/install.sh | INSTALLER_NO_MODIFY_PATH=1 sh
+          export PATH="$HOME/.local/bin:$PATH"
+          uv --version
+          uv sync
+          uv add pytest
+          uv sync
+      - name: Run tests
+        run: uv run pytest -q

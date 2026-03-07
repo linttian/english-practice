@@ -28,7 +28,6 @@ A **fully offline** English listening practice tool for English learners. Upload
 
 ### Prerequisites
 
-- Python 3.12+
 - [`uv`](https://docs.astral.sh/uv/) package manager
 - `ffmpeg` system package
 
@@ -80,7 +79,7 @@ uv sync --extra whisperx    # WhisperX (forced alignment)
 
 ```
 english-learning/
-├── main.py                        # Entry point — sets HF_ENDPOINT, runs Streamlit
+├── main.py                        # Entry point — runs Streamlit
 ├── pyproject.toml                 # uv config, CUDA wheel index, optional extras
 ├── output/                        # Runtime artifacts (gitignored)
 │   └── <sha256-hash>/
@@ -115,8 +114,6 @@ That's it — the new engine appears in the sidebar dropdown automatically.
 ---
 
 ## Environment Notes
-
-- `HF_ENDPOINT` defaults to `https://hf-mirror.com/` (Chinese HuggingFace mirror). Override in `main.py` or via environment variable.
 - Models cache to `~/.cache/huggingface/hub/`
 - For CPU-only deployment, remove the `[[tool.uv.index]]` and `[tool.uv.sources]` blocks from `pyproject.toml`
 
