@@ -525,15 +525,9 @@ def _practice_index_path() -> str:
 
 
 def _startup_log(msg: str) -> None:
-    """Append a timestamped message to output/startup_debug.log (best-effort)."""
-    try:
-        os.makedirs("output", exist_ok=True)
-        path = os.path.join("output", "startup_debug.log")
-        ts = datetime.datetime.now().isoformat()
-        with open(path, "a", encoding="utf-8") as fh:
-            fh.write(f"{ts} - {msg}\n")
-    except Exception:
-        pass
+    """No-op startup logger. Removed writing to output/startup_debug.log."""
+    # Intentionally do nothing to avoid creating debug log files.
+    return
 
 
 def _load_practice_index() -> list:

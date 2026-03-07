@@ -16,6 +16,7 @@ A **fully offline** English listening practice tool for English learners. Upload
 - **Multiple ASR engines** — Whisper (base / small / large-v3-turbo / distil-large-v3) and Qwen3-ASR (0.6B / 1.7B) with word-level forced alignment
 - **Subtitle shortcut** — drop a `.srt` or `.vtt` file to skip ASR entirely
 - **Sentence-level clips** — audio sliced by sentence with 200 ms padding, cached to disk
+- **Improved segmentation** — expanded abbreviation handling (including country/organization abbreviations) to reduce false sentence splits
 - **Dictation workspace** — type what you hear, then compare with instant word-level diff (green = correct, red = missed/wrong)
 - **Loop toggle** — repeat a clip on demand without page reload
 - **Resume from where you left off** — last-viewed segment persisted per audio file
@@ -78,7 +79,7 @@ uv sync --extra whisperx    # WhisperX (forced alignment)
 ## Project Structure
 
 ```
-english-learning/
+english-practice/
 ├── main.py                        # Entry point — runs Streamlit
 ├── pyproject.toml                 # uv config, CUDA wheel index, optional extras
 ├── output/                        # Runtime artifacts (gitignored)

@@ -51,12 +51,19 @@ def _is_sentence_final(text: str, next_text: str | None = None) -> bool:
         return True
 
     # Honorifics/titles that almost always continue with a name (don't end sentences)
-    titles = r"^(?:Mr|Mrs|Ms|Miss|Dr|Prof|Sir|Madam|Mx)\.?$"
+    titles = r"^(?:Mr|Mrs|Ms|Miss|Dr|Prof|Sir|Madam|Mx|Rev|Fr|Br|Sr|Sra|Sra\.|Srta|Hon|Pres|Gov|Sen|Rep|Amb|Capt|Cmdr|Lt|Col|Maj|Gen|Adm|Sgt|Cpl|Pvt)\.?$"
     if re.match(titles, last_word, re.IGNORECASE):
         return False
 
-    # Common abbreviations (months, e.g., etc) that usually don't end sentences
-    abbrev = r"^(?:Sr|Jr|St|vs|etc|e\.g|i\.e|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?$"
+    # Common abbreviations (months, companies, degrees, etc.) that usually don't end sentences
+    abbrev = (
+        r"^(?:Sr|Jr|St|vs|v|etc|e\.g|i\.e|approx|ca|cf|fig|dept|univ|dept|est|no|sec|chap)\.?$|"
+        r"^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?$|"
+        r"^(?:Inc|Ltd|Co|Corp|LLC|PLC|GmbH|S\.A\.|SAS)\.?$|"
+        r"^(?:Ph\.D|M\.D|B\.A|M\.A|B\.Sc|M\.Sc|D\.D\.S|LL\.B|J\.D|Esq)\.?$|"
+        # Common country/organization abbreviations (with or without dots)
+        r"^(?:US|U\.S\.|USA|U\.S\.A|UK|U\.K\.|UAE|U\.A\.E\.|PRC|P\.R\.C\.|ROC|R\.O\.C\.|EU|E\.U\.|U\.N\.|U\.S\.S\.R\.|USSR|N\.Z\.|NZ|CAN|AUS|Aus)\.?$"
+    )
     if re.match(abbrev, last_word, re.IGNORECASE):
         # If there's no following text, allow sentence end
         if not next_text:
