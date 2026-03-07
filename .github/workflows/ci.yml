@@ -27,4 +27,4 @@ jobs:
           uv add pytest
           uv sync
       - name: Run tests
-        run: uv run pytest -q
+        run: PYTHONPATH=$PWD uv run pytest -q
