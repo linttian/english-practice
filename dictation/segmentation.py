@@ -41,7 +41,9 @@ def _segments_from_json(data: list[dict]) -> list[Segment]:
     ]
 
 
-def load_cached_segments(session_id: str, output_root: str = "./output") -> list[Segment] | None:
+def load_cached_segments(
+    session_id: str, output_root: str = "./output"
+) -> list[Segment] | None:
     """Return cached segments for *session_id*, or ``None`` if no cache exists."""
     cache_path = Path(output_root) / session_id / _CACHE_FILE
     if not cache_path.exists():
@@ -93,9 +95,17 @@ def slice_audio(
     segments: list[Segment],
     session_id: str,
     output_root: str = "./output",
-    padding_ms: int = 200,
+    padding_ms: int = 100,
+    min_sentence_length: int = 1,
+    merge_on_punctuation: bool = True,
+    max_duration: int = 60,  # Default max duration in seconds
 ) -> list[Segment]:
-    """Slice *audio_path* into one WAV clip per segment.
+    """Slice *audio_path* into one WAV clip per segment with improved segmentation.
+
+    This function ensures that segments are not overly split by merging short segments
+    that are part of the same sentence. Segments shorter than `min_sentence_length` words
+    are merged with the next segment if possible. Additionally, segments are merged
+    based on punctuation if `merge_on_punctuation` is enabled.
 
     Each clip is saved to ``{output_root}/{session_id}/clip_NNN.wav`` as
     16 kHz mono WAV for maximum compatibility with Streamlit's audio player.
@@ -115,6 +125,8 @@ def slice_audio(
 
     out_dir = Path(output_root) / session_id
     out_dir.mkdir(parents=True, exist_ok=True)
+    clips_dir = out_dir / "clips"
+    clips_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         audio = PydubSegment.from_file(audio_path)
@@ -128,23 +140,79 @@ def slice_audio(
 
     audio_len_ms = len(audio)
 
+    # Merge short segments and segments based on punctuation
+    merged_segments = []
+    buffer_segment = None
+
     for seg in segments:
+        if buffer_segment is None:
+            buffer_segment = seg
+        else:
+            # Check if the current segment should be merged
+            if merge_on_punctuation and not buffer_segment.text.strip().endswith("."):
+                buffer_segment.end = seg.end
+                buffer_segment.text += " " + seg.text
+            elif len(buffer_segment.text.split()) < min_sentence_length:
+                buffer_segment.end = seg.end
+                buffer_segment.text += " " + seg.text
+            else:
+                merged_segments.append(buffer_segment)
+                buffer_segment = seg
+
+    if buffer_segment:
+        merged_segments.append(buffer_segment)
+
+    # Convert max_duration to milliseconds
+    max_duration_ms = max_duration * 1000
+
+    # Slice audio based on merged segments with max_duration constraint
+    final_segments = []
+    for seg in merged_segments:
         start_ms = max(0, int(seg.start * 1000) - padding_ms)
         end_ms = min(audio_len_ms, int(seg.end * 1000) + padding_ms)
 
+        while end_ms - start_ms > max_duration_ms:
+            split_point = start_ms + max_duration_ms
+            clip = audio[start_ms:split_point]
+            clip = clip.set_frame_rate(16_000).set_channels(1)
+
+            out_path = clips_dir / f"clip_{len(final_segments):03d}.wav"
+            clip.export(str(out_path), format="wav")
+
+            final_segments.append(
+                Segment(
+                    index=len(final_segments),
+                    start=start_ms / 1000,
+                    end=split_point / 1000,
+                    text=seg.text,
+                    clip_path=str(out_path.resolve()),
+                )
+            )
+
+            start_ms = split_point
+
+        # Handle the remaining part of the segment
         clip = audio[start_ms:end_ms]
-        # Normalise to 16 kHz mono WAV for consistent playback
         clip = clip.set_frame_rate(16_000).set_channels(1)
 
-        out_path = out_dir / f"clip_{seg.index:03d}.wav"
+        out_path = clips_dir / f"clip_{len(final_segments):03d}.wav"
         clip.export(str(out_path), format="wav")
-        seg.clip_path = str(out_path.resolve())
+
+        final_segments.append(
+            Segment(
+                index=len(final_segments),
+                start=start_ms / 1000,
+                end=end_ms / 1000,
+                text=seg.text,
+                clip_path=str(out_path.resolve()),
+            )
+        )
 
     # Persist segment metadata so the same file can be loaded from cache
     cache_path = out_dir / _CACHE_FILE
     cache_path.write_text(
-        json.dumps(_segments_to_json(segments), ensure_ascii=False, indent=2),
+        json.dumps(_segments_to_json(final_segments), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
-    return segments
+    return final_segments

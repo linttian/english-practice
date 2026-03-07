@@ -1,10 +1,9 @@
 # 🎧 English Listening Practice
 
-A **fully offline, local-first** English listening practice tool. Upload any audio or video, have it transcribed into sentence-level clips, then practice dictation with instant word-level diff feedback.
+A **fully offline** English listening practice tool for English learners. Upload any audio or video, have it transcribed into sentence-level clips, then practice dictation with instant word-level diff feedback.
 
 **Core loop: Listen → Write → Compare**
 
-No cloud APIs. No accounts. No internet required after the initial model download.
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Streamlit](https://img.shields.io/badge/streamlit-1.35%2B-red)
@@ -89,7 +88,7 @@ english-learning/
 │       ├── segments.json          # Cached transcription
 │       └── ui_state.json          # Persisted segment index
 │
-└── english_learning/
+└── dictation/
     ├── app.py                     # Streamlit UI
     ├── models.py                  # Segment dataclass
     ├── segmentation.py            # Audio slicing + cache I/O
@@ -108,8 +107,8 @@ english-learning/
 
 ## Adding a New ASR Engine
 
-1. Create `english_learning/asr/myengine.py`, subclass `ASREngine`, implement `load(device)` and `transcribe(audio_path) -> list[Segment]`
-2. Add one entry to `_ENGINE_LOADERS` in `english_learning/asr/__init__.py`
+1. Create `dictation/asr/myengine.py`, subclass `ASREngine`, implement `load(device)` and `transcribe(audio_path) -> list[Segment]`
+2. Add one entry to `_ENGINE_LOADERS` in `dictation/asr/__init__.py`
 
 That's it — the new engine appears in the sidebar dropdown automatically.
 

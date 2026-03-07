@@ -23,3 +23,7 @@ tmp_*
 
 # Environment / secrets
 .env
+
+
+# Claude Code
+CLAUDE.md

@@ -158,3 +158,8 @@ class QwenEngine(ASREngine):
         self._model = None
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+
+class QwenLargeEngine(QwenEngine):
+    name: str = "qwen3-asr (1.7b)"
+    model_id: str = "Qwen/Qwen3-ASR-1.7B"

@@ -35,7 +35,7 @@ english-learning/
 │       ├── segments.json            # Cached transcription metadata
 │       └── ui_state.json            # Persisted last-viewed segment index
 │
-└── english_learning/                # Main Python package
+└── dictation/                       # Main Python package
     ├── app.py                       # Streamlit UI — upload, transcription, dictation workspace
     ├── models.py                    # Core dataclass: Segment
     ├── segmentation.py              # Audio slicing (pydub/ffmpeg) + segment cache I/O

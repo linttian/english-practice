@@ -5,7 +5,7 @@ Engine modules are imported lazily — only when an engine is actually selected.
 
 Usage::
 
-    from english_learning.asr import ENGINE_REGISTRY
+    from dictation.asr import ENGINE_REGISTRY
 
     EngineCls = ENGINE_REGISTRY["whisper (large-v3-turbo)"]
     engine = EngineCls()

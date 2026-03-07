@@ -63,7 +63,7 @@ def build_diff_html(reference: str, user_input: str) -> str:
                 for w in ref_chunk[len(usr_chunk) :]:
                     usr_parts.append(
                         _span(
-                            f"[missing:{w}]",
+                            f"[- {w}]",
                             color="#ffcccc",
                             extra_style="opacity:0.85",
                         )
@@ -75,7 +75,7 @@ def build_diff_html(reference: str, user_input: str) -> str:
             for w in ref_chunk:
                 ref_parts.append(_span(w, color="#ffcccc"))
                 usr_parts.append(
-                    _span(f"[missing:{w}]", color="#ffcccc", extra_style="opacity:0.85")
+                    _span(f"[- {w}]", color="#ffcccc", extra_style="opacity:0.85")
                 )
 
         elif tag == "insert":
@@ -88,11 +88,11 @@ def build_diff_html(reference: str, user_input: str) -> str:
 
     return (
         "<div style='font-size:1.05em; line-height:1.8'>"
-        f"<p><b>Reference:</b> {ref_html}</p>"
+        f"<p><b>Reference:</b> {reference}</p>"  # Display original reference
         f"<p><b>Your input:</b> {usr_html}</p>"
         "<p style='font-size:0.85em; color:#888'>"
         "<span style='background:#ffcccc; text-decoration:line-through'>wrong</span>&nbsp;"
-        "<span style='background:#ffcccc'>[missing:word]</span>&nbsp;"
+        "<span style='background:#ffcccc'>[-:missing word]</span>&nbsp;"
         "<span style='background:#ffffcc'>extra word</span>"
         "</p>"
         "</div>"

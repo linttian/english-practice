@@ -7,7 +7,7 @@ Run with:
 import os
 
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com/")
-from english_learning.app import main
+from dictation.app import main
 
 if __name__ == "__main__":
     main()
