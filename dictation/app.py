@@ -10,6 +10,7 @@ import base64
 import datetime
 import hashlib
 import json
+import logging
 import os
 import tempfile
 import traceback
@@ -80,7 +81,8 @@ def _save_last_segment_idx(session_id: str, idx: int) -> None:
 
 def _render_sidebar() -> tuple[str, str, dict]:
     """Render sidebar and return (engine_name, device, settings)."""
-    _startup_log("render_sidebar start")
+    logger = logging.getLogger(__name__)
+    logger.debug("render_sidebar start")
     with st.sidebar:
         st.title("⚙️ Settings")
         st.divider()
@@ -197,7 +199,8 @@ def _render_sidebar() -> tuple[str, str, dict]:
 
 
 def _render_upload_section(engine_name: str, device: str, settings: dict) -> None:
-    _startup_log("render_upload_section start")
+    logger = logging.getLogger(__name__)
+    logger.debug("render_upload_section start")
     st.header("1. Upload Media")
 
     col_audio, col_sub = st.columns(2)
@@ -524,10 +527,19 @@ def _practice_index_path() -> str:
     return os.path.join("output", "practice_index.json")
 
 
-def _startup_log(msg: str) -> None:
-    """No-op startup logger. Removed writing to output/startup_debug.log."""
-    # Intentionally do nothing to avoid creating debug log files.
-    return
+# Use standard logging instead of a custom startup_debug file
+logger = logging.getLogger(__name__)
+
+
+def _get_score(scores: dict, idx: int):
+    """Return the score for segment `idx`, handling int or string keys in `scores` dict."""
+    if scores is None:
+        return None
+    # Try integer key first, then string key (Streamlit may coerce dict keys)
+    val = scores.get(idx)
+    if val is not None:
+        return val
+    return scores.get(str(idx))
 
 
 def _load_practice_index() -> list:
@@ -713,7 +725,7 @@ def _render_segment(seg: Segment) -> None:
     # Show segment title with current score badge
     score_display = "—"
     scores = st.session_state.get("scores", {})
-    sc = scores.get(idx)
+    sc = _get_score(scores, idx)
     if sc is None:
         score_display = "Not scored"
     else:
@@ -897,7 +909,7 @@ def _calculate_final_score(segments: list[Segment], scores: dict) -> float:
         return 0.0
     weighted = 0.0
     for s, w in zip(segments, weights):
-        sc = scores.get(s.index)
+        sc = _get_score(scores, s.index)
         if sc is None:
             sc = 0
         weighted += sc * w
@@ -916,7 +928,7 @@ def main() -> None:
             page_icon="🎧",
             layout="wide",
         )
-        _startup_log("main invoked")
+        logger.debug("main invoked")
         _init_session_state()
 
         engine_name, device, settings = _render_sidebar()
@@ -997,7 +1009,7 @@ def main() -> None:
         # Show progress and final score button
         scores = st.session_state.get("scores", {})
         total = len(segments)
-        scored_count = sum(1 for s in segments if scores.get(s.index) is not None)
+        scored_count = sum(1 for s in segments if _get_score(scores, s.index) is not None)
         col_status, col_final = st.columns([3, 1])
         with col_status:
             st.markdown(f"**Progress:** {scored_count} / {total} segments scored")
@@ -1034,7 +1046,7 @@ def main() -> None:
     except Exception:
         # Log full traceback for diagnosis and re-raise so Streamlit shows error
         tb = traceback.format_exc()
-        _startup_log(f"Unhandled exception in main: {tb}")
+        logger.exception("Unhandled exception in main:\n%s", tb)
         raise
 
 
@@ -1045,7 +1057,6 @@ def _show_transcription_success():
 
 def _render_analytics() -> None:
     """Render practice analytics: recent activity, calendar month heatmap (simple), and line chart."""
-    _startup_log("render_analytics start")
     idx = _load_practice_index()
     if not idx:
         return
