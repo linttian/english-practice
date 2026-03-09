@@ -26,29 +26,36 @@ A **fully offline, local-first** English listening practice tool. The core loop 
 ## Folder Layout
 
 ```
-english-learning/
-├── main.py                          # Entry point — sets HF_ENDPOINT, delegates to app.main()
-├── pyproject.toml                   # uv config, CUDA wheel index, optional extras
-├── output/                          # Runtime artifact directory (gitignored)
-│   └── <sha256-hash>/              # One directory per unique uploaded file
-│       ├── clip_000.wav … clip_NNN.wav   # Per-sentence audio clips (16kHz mono)
-│       ├── segments.json            # Cached transcription metadata
-│       └── ui_state.json            # Persisted last-viewed segment index
-│
-└── dictation/                       # Main Python package
-    ├── app.py                       # Streamlit UI — upload, transcription, dictation workspace
-    ├── models.py                    # Core dataclass: Segment
-    ├── segmentation.py              # Audio slicing (pydub/ffmpeg) + segment cache I/O
-    ├── subtitle.py                  # .srt / .vtt parser → list[Segment]
-    ├── diff.py                      # Word-level diff engine → colored HTML
-    ├── analysis.py                  # Connected-speech analysis via local LLM (WIP, not wired into UI)
-    │
-    └── asr/                         # Pluggable ASR engine subsystem
-        ├── __init__.py              # ENGINE_REGISTRY — lazy-loading engine lookup
-        ├── base.py                  # ASREngine abstract base class
-        ├── _text_split.py           # Fallback: proportional timestamp estimation from plain text
-        ├── whisper.py               # Whisper family (base/small/large-v3-turbo/distil-large-v3)
-        └── qwen.py                  # Qwen3-ASR family (0.6B/1.7B) with forced aligner
+english-practice/
+├── main.py                        # Entry point — runs Streamlit (loads .env)
+├── pyproject.toml                 # uv config, CUDA wheel index, optional extras
+├── .env                           # Optional runtime env (HF_ENDPOINT, etc.)
+├── output/                        # Runtime artifacts (gitignored)
+│   └── <sha256-hash>/
+│       ├── clip_000.wav … clip_NNN.wav
+│       ├── segments.json          # Cached transcription
+│       ├── ui_state.json          # Persisted last-viewed segment index
+│       └── ...
+└── dictation/
+    ├── app.py                     # Thin bootstrap + misc helpers
+    ├── app_core.py                # `Application` class — high-level UI wiring
+    ├── ui_templates.py            # CSS/HTML snippets (keeps HTML out of app logic)
+    ├── recent_practices.py        # Recent practices rendering (tab)
+    ├── analytics.py               # Practice analytics rendering (tab)
+    ├── utils/                     # I/O and scanning helpers
+    │   ├── __init__.py
+    │   ├── io.py                  # paths, load/save, record events
+    │   └── scan.py                # scan recent practice folders
+    ├── models.py                  # Segment dataclass
+    ├── segmentation.py            # Audio slicing + cache I/O
+    ├── subtitle.py                # .srt / .vtt parser
+    ├── diff.py                    # Word-level diff → colored HTML
+    └── asr/
+        ├── __init__.py            # ENGINE_REGISTRY (lazy-loading)
+        ├── base.py                # ASREngine abstract base class
+        ├── _text_split.py         # Fallback timestamp estimation
+        ├── whisper.py             # Whisper family
+        └── qwen.py                # Qwen3-ASR family
 ```
 
 ## Architecture
@@ -96,7 +103,22 @@ Content-addressed: re-uploading the same file hits `output/<hash>/segments.json`
 ### Environment
 
 - `main.py` sets `HF_ENDPOINT` to `https://hf-mirror.com/` by default (Chinese HuggingFace mirror)
+ - `main.py` sets `HF_ENDPOINT` to `https://hf-mirror.com/` by default (Chinese HuggingFace mirror)
+ - The app also supports a project-root `.env` file. `main.py` will load simple `KEY=VALUE` lines from `.env` before applying defaults. Example:
+
+```
+HF_ENDPOINT="https://hf-mirror.com/"
+```
+Use `.env` to override `HF_ENDPOINT` or add other environment vars without modifying source.
 - Models cache to `~/.cache/huggingface/hub/`
 - Requires `ffmpeg` system package for pydub audio processing
 - Python 3.12, managed with `uv`
 - CUDA 12.1 wheels configured via `[[tool.uv.index]]` in pyproject.toml; remove those sections for CPU-only
+- The app no longer writes `output/startup_debug.log`; it uses standard Python logging (stderr) for diagnostics to avoid creating debug files in `output/`.
+ - Recent refactors split UI helpers and templates into modules under `dictation/`:
+  - `dictation/app_core.py` — `Application` class / high-level UI wiring
+  - `dictation/ui_templates.py` — CSS and HTML snippets (keeps HTML out of main code)
+  - `dictation/recent_practices.py` — Recent practices rendering
+  - `dictation/analytics.py` — Analytics rendering
+  - `dictation/services/` — I/O and scanning helpers (`io.py`, `scan.py`)
+  Keep this layout when making further refactors.

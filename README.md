@@ -80,21 +80,29 @@ uv sync --extra whisperx    # WhisperX (forced alignment)
 
 ```
 english-practice/
-├── main.py                        # Entry point — runs Streamlit
+├── main.py                        # Entry point — runs Streamlit (loads .env)
 ├── pyproject.toml                 # uv config, CUDA wheel index, optional extras
+├── .env                           # Optional runtime env (HF_ENDPOINT, etc.)
 ├── output/                        # Runtime artifacts (gitignored)
 │   └── <sha256-hash>/
 │       ├── clip_000.wav … clip_NNN.wav
 │       ├── segments.json          # Cached transcription
-│       └── ui_state.json          # Persisted segment index
-│
+│       ├── ui_state.json          # Persisted last-viewed segment index
+│       └── ...
 └── dictation/
-    ├── app.py                     # Streamlit UI
+    ├── app.py                     # Thin bootstrap + misc helpers
+    ├── app_core.py                # `Application` class — high-level UI wiring
+    ├── ui_templates.py            # CSS/HTML snippets (keeps HTML out of app logic)
+    ├── recent_practices.py        # Recent practices rendering (tab)
+    ├── analytics.py               # Practice analytics rendering (tab)
+    ├── utils/                     # I/O and scanning helpers
+    │   ├── __init__.py
+    │   ├── io.py                  # paths, load/save, record events
+    │   └── scan.py                # scan recent practice folders
     ├── models.py                  # Segment dataclass
     ├── segmentation.py            # Audio slicing + cache I/O
     ├── subtitle.py                # .srt / .vtt parser
     ├── diff.py                    # Word-level diff → colored HTML
-    ├── analysis.py                # Connected-speech analysis (WIP)
     └── asr/
         ├── __init__.py            # ENGINE_REGISTRY (lazy-loading)
         ├── base.py                # ASREngine abstract base class
@@ -118,7 +126,24 @@ That's it — the new engine appears in the sidebar dropdown automatically.
 - Models cache to `~/.cache/huggingface/hub/`
 - For CPU-only deployment, remove the `[[tool.uv.index]]` and `[tool.uv.sources]` blocks from `pyproject.toml`
 
+### `.env` configuration
+You can configure runtime environment variables in a project-root `.env` file. The app loads simple `KEY=VALUE` pairs from `.env` at startup (no extra dependency required). Example `.env`:
+
+```
+HF_ENDPOINT="https://hf-mirror.com/"
+```
+
+`HF_ENDPOINT` is used to point to a HuggingFace mirror.
+
 ---
+
+## Screenshots
+
+Below are screenshots of the app UI (from the `assets/` directory):
+
+- Main screen:
+
+![App screenshot - main](assets/screenshot.png)
 
 ## License
 
